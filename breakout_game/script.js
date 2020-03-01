@@ -44,10 +44,10 @@ const brickInfo = {
 
 // create bricks
 
-const bricks = [];
+const bricks = []
 
 for (let i = 0; i < brickRowCount; i++) {
-  bricks[i] = [];
+  bricks[i] = []
   for (let j = 0; j < brickColumnCount; j++) {
     const x = i * (brickInfo.w + brickInfo.padding) + brickInfo.offsetX
     const y = j * (brickInfo.h + brickInfo.padding) + brickInfo.offsetY
@@ -99,18 +99,135 @@ function drawBricks() {
     })
   })
 }
+// move paddle
+function movePaddle() {
+  paddle.x += paddle.dx;
+
+  // wall detection
+  // right
+  if (paddle.x + paddle.w > canvas.width) {
+    paddle.x = canvas.width - paddle.w
+  }
+
+  // left
+  if (paddle.x < 0) {
+    paddle.x = 0
+  }
+}
+
+// moveball
+function moveBall() {
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  // collision detection (right/left)
+  if (ball.x + ball.size > canvas.width || ball.x - ball.size < 0) {
+    ball.dx *= -1; // ball.dx = ball.dx * -1 
+    // reverses direction
+  }
+  // collision detection (top/bottom)
+  if (ball.y + ball.size > canvas.height || ball.y - ball.size < 0) {
+    ball.dy *= -1
+  }
+
+  // paddle collision
+  if (
+    ball.x - ball.size > paddle.x &&
+    ball.x + ball.size < paddle.x + paddle.w &&
+    ball.y + ball.size > paddle.y) {
+    ball.dy = -ball.speed
+  }
+
+  // brick collision
+  bricks.forEach(column => {
+    column.forEach(brick => {
+      if (brick.visible) {
+        if (
+          ball.x - ball.size > brick.x && // left brick side check
+          ball.x + ball.size < brick.x + brick.w && // right brick side check
+          ball.y + ball.size > brick.y && // top brick side check
+          ball.y - ball.size < brick.y + brick.h // bottom brick side check
+        ) {
+          ball.dy *= -1;
+          brick.visible = false;
+          increaseScore();
+        }
+      }
+    });
+  });
+
+  // hit bottom wall - lose
+  if (ball.y + ball.size > canvas.height) {
+    showAllBricks()
+    score = 0
+  }
+}
+
+// increase score
+
+function increaseScore() {
+  score++
+  if (score % (brickRowCount * brickColumnCount) === 0) {
+    showAllBricks()
+  }
+}
+
+// show all bricks
+
+function showAllBricks() {
+  bricks.forEach(column => {
+    column.forEach(brick => brick.visible = true)
+  })
+}
 
 // draw everything
 
 function draw() {
+  // clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   drawBall()
   drawPaddle()
   drawScore()
   drawBricks()
 }
 
-draw();
 
+// update canvas drawing and animation
+function update() {
+  movePaddle()
+  moveBall()
+  //draw everything
+  draw();
+  requestAnimationFrame(update)
+}
+
+update()
+
+// keydown event
+function keyDown(e) {
+  if (e.key === 'Right' || e.key === 'ArrowRight') {
+    paddle.dx = paddle.speed
+  } else if (e.key === 'Left' || e.key === 'ArrowLeft') {
+    paddle.dx = -paddle.speed
+  }
+}
+
+// keyup
+
+function keyUp(e) {
+  if (e.key === 'Right' || e.key === 'ArrowRight' || e.key === 'Left' || e.key === 'ArrowLeft') {
+    paddle.dx = 0
+  }
+}
+
+
+// keyboard events
+
+document.addEventListener('keydown', keyDown)
+document.addEventListener('keyup', keyUp)
+
+// button events
 rulesBtn.addEventListener('click', () => {
   rules.classList.add('show')
 })
